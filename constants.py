@@ -5,8 +5,10 @@
 ############################################################
 # ライブラリの読み込み
 ############################################################
+
 from langchain_community.document_loaders import PyMuPDFLoader, Docx2txtLoader, TextLoader
 from langchain_community.document_loaders.csv_loader import CSVLoader
+from merged_csv_loader import load_merged_employee_csv
 
 
 ############################################################
@@ -47,10 +49,19 @@ TEMPERATURE = 0.5
 # RAG参照用のデータソース系
 # ==========================================
 RAG_TOP_FOLDER_PATH = "./data"
+def custom_csv_loader(path):
+    # 社員名簿.csvだけ新ローダーを使う
+    import os
+    if os.path.basename(path) == "社員名簿.csv":
+        return type("MergedEmployeeLoader", (), {"load": lambda self: load_merged_employee_csv(path)})()
+    else:
+        return CSVLoader(path, encoding="utf-8")
+
 SUPPORTED_EXTENSIONS = {
     ".pdf": PyMuPDFLoader,
     ".docx": Docx2txtLoader,
-    ".csv": lambda path: CSVLoader(path, encoding="utf-8")
+    ".csv": custom_csv_loader,
+    ".txt": lambda path: TextLoader(path, encoding="utf-8"),
 }
 WEB_URL_LOAD_TARGETS = [
     "https://generative-ai.web-camp.io/"
@@ -110,3 +121,10 @@ NO_DOC_MATCH_MESSAGE = """
 CONVERSATION_LOG_ERROR_MESSAGE = "過去の会話履歴の表示に失敗しました。"
 GET_LLM_RESPONSE_ERROR_MESSAGE = "回答生成に失敗しました。"
 DISP_ANSWER_ERROR_MESSAGE = "回答表示に失敗しました。"
+
+# ==========================================
+# RAG関連の設定値
+# ==========================================
+CHUNK_SIZE = 5000
+CHUNK_OVERLAP = 50
+RETRIEVER_K = 5
